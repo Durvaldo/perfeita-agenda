@@ -10,11 +10,12 @@ const currentUserSelect = {
   phone: true,
   role: true,
   tenantId: true,
+  disabledAt: true,
   // The linked professional tells the UI which schedule belongs to the logged-in
   // user (same as the legacy GET /api/user, which loaded `barbeiro`).
   professional: { select: { id: true, active: true } },
   // Name for the UI; time zone for scheduling rules (ADR-0009).
-  tenant: { select: { name: true, timezone: true } },
+  tenant: { select: { name: true, timezone: true, status: true } },
 } as const;
 
 /**

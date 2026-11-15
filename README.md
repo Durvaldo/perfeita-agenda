@@ -158,3 +158,15 @@ A homologação está na Vercel, em **https://gestao-perfeita.vercel.app**, com 
   - cadastro self-service de novas barbearias;
   - recuperação de senha e verificação de e-mail;
   - página pública de agendamento e demais melhorias do [plano de melhorias](docs/PLANO_MELHORIAS_BENCHMARK.md).
+
+## Integração com a Gestão Perfeita (opcional, desligada por padrão)
+
+A Agenda pode ser administrada pela plataforma Gestão Perfeita, que cuida de empresas, contratos e acesso por pessoa (TASK-0044, ADR-0017). Para ativar, defina `GP_PLATFORM_ENABLED=true` e as variáveis `GP_*` de `web/.env.example`. Com isso a Agenda passa a:
+
+- receber eventos assinados em `POST /api/platform/events`, que provisionam ou adotam barbearias, aplicam acessos e suspensões;
+- mostrar "Entrar com Gestão Perfeita" no login (OIDC). A redirect URI a cadastrar na plataforma é `{BETTER_AUTH_URL}/api/auth/callback/gestaoperfeita`;
+- consultar a plataforma a cada login de usuário vinculado. Se a plataforma não responder, o login é negado.
+
+Para desfazer, basta desligar a flag: as tabelas novas são aditivas. **Atenção:** produção e preview usam o mesmo banco (ADR-0016), então a migration `platform_integration` deve ser testada antes num banco de homologação separado.
+
+Barbearias com status `suspended` não acessam o painel, com ou sem a flag.
