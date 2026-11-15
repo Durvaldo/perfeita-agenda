@@ -1,4 +1,5 @@
 import { unscopedDb } from "@/lib/db";
+import { platformEnabled } from "@/server/platform/config";
 
 /** Better Auth error code returned when a deactivated account tries to sign in. */
 export const ACCOUNT_DISABLED = "ACCOUNT_DISABLED";
@@ -17,18 +18,19 @@ type AccessFields = {
  * Whether a user's access is blocked:
  * - a professional whose professional record is deactivated (ADR-0008);
  * - a user disabled by the platform (`disabledAt`, ADR-0017);
- * - a user of a suspended barbershop (`Tenant.status = suspended`, ADR-0017).
+ * - a user of a suspended barbershop (`Tenant.status = suspended`, ADR-0017) — ONLY with
+ *   GP_PLATFORM_ENABLED, so turning the flag off keeps the legacy behavior exactly.
  */
 export function isAccessBlocked(user: AccessFields): boolean {
   if (user.disabledAt) return true;
-  if (user.tenant?.status === "suspended") return true;
+  if (platformEnabled() && user.tenant?.status === "suspended") return true;
   return user.role === "professional" && user.professional !== null && !user.professional.active;
 }
 
 /** Why access is blocked (sign-in error code), or null when it is not. */
 export function accessBlockReason(user: AccessFields): typeof ACCOUNT_DISABLED | typeof TENANT_SUSPENDED | null {
   if (!isAccessBlocked(user)) return null;
-  return user.tenant?.status === "suspended" && !user.disabledAt ? TENANT_SUSPENDED : ACCOUNT_DISABLED;
+  return platformEnabled() && user.tenant?.status === "suspended" && !user.disabledAt ? TENANT_SUSPENDED : ACCOUNT_DISABLED;
 }
 
 const accessSelect = {
