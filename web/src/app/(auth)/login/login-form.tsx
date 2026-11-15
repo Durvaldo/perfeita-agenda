@@ -8,11 +8,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth-client";
-import { authErrorMessage } from "@/lib/auth-messages";
+import { authErrorMessage, oauthErrorMessage } from "@/lib/auth-messages";
 
-export function LoginForm() {
+type Props = {
+  /** Shows "Entrar com Gestão Perfeita" (GP_PLATFORM_ENABLED, ADR-0017). */
+  platformLogin?: boolean;
+  /** Error code returned by the OIDC callback (?error=...). */
+  initialError?: string | null;
+};
+
+export function LoginForm({ platformLogin = false, initialError = null }: Props) {
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError ? oauthErrorMessage(initialError) : null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -37,6 +44,16 @@ export function LoginForm() {
     }
     router.replace("/");
     router.refresh();
+  }
+
+  async function handlePlatformLogin() {
+    setError(null);
+    setSubmitting(true);
+    const { error: socialError } = await authClient.signIn.social({ provider: "gestaoperfeita", callbackURL: "/", errorCallbackURL: "/login" });
+    if (socialError) {
+      setError(authErrorMessage(socialError));
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -70,6 +87,14 @@ export function LoginForm() {
             Entrar
           </Button>
         </form>
+        {platformLogin ? (
+          <div className="mt-4 flex flex-col gap-2">
+            <p className="text-center text-xs text-muted-foreground">ou</p>
+            <Button type="button" variant="outline" disabled={submitting} onClick={handlePlatformLogin}>
+              Entrar com Gestão Perfeita
+            </Button>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

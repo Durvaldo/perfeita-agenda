@@ -129,6 +129,9 @@ model User {
   phone         String?
   // Fields below (emailVerified, image) are required by Better Auth (ADR-0004).
   emailVerified Boolean  @default(false) @map("email_verified")
+  // Set when access was revoked/suspended by the Gestão Perfeita platform (TASK-0044).
+  // Blocks sign-in and live sessions; history (appointments, orders) is kept.
+  disabledAt    DateTime? @map("disabled_at")
   image         String?
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
@@ -471,4 +474,39 @@ model StoredFile {
 
   @@index([tenantId])
   @@map("stored_files")
+}
+
+// Gestão Perfeita platform integration (TASK-0044, ADR-0017). Additive; used only
+// when GP_PLATFORM_ENABLED=true. Tenants/users are keyed by platform UUIDs, never by
+// e-mail or name.
+model PlatformTenantMapping {
+  id             Int      @id @default(autoincrement())
+  organizationId String   @unique @map("organization_id") @db.Uuid
+  tenantId       Int      @unique @map("tenant_id")
+  // Agenda entitlement state on the platform: active | suspended
+  status             String   @default("active")
+  // Organization (whole company) state on the platform: active | suspended
+  organizationStatus String   @default("active") @map("organization_status")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@map("platform_tenant_mappings")
+}
+
+model PlatformUserMapping {
+  id             Int      @id @default(autoincrement())
+  platformUserId String   @unique @map("platform_user_id") @db.Uuid
+  userId         Int      @unique @map("user_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@map("platform_user_mappings")
+}
+
+// Idempotency of platform events (event id = envelope id).
+model PlatformProcessedEvent {
+  eventId     String   @id @map("event_id") @db.Uuid
+  type        String
+  processedAt DateTime @default(now()) @map("processed_at")
+
+  @@map("platform_processed_events")
 }
